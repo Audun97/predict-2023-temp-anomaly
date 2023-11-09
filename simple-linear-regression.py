@@ -1,9 +1,14 @@
+"""
+This script calculates the probabillity that 2023 will be the hottest year ever 
+based on full year temperature anomalies and a simple linear regression
+"""
 import pandas as pd
 import statsmodels.api as sm
-from statsmodels.stats.outliers_influence import summary_table
+from scipy.stats import norm
+import matplotlib.pyplot as plt
 
-# This script calculates the probabillity that 2023 will be the hottest year ever 
-# based on full year temperature anomalies and a simple linear regression
+def plot_scatter(year, anomaly, color, label):
+    plt.scatter(year, anomaly, color=color, label=label)
 
 file_path = 'data/full-year-temp-anomalies.csv'
 
@@ -12,39 +17,52 @@ data = pd.read_csv(file_path, skiprows=4)
 # cut off data from the 70's because that is when we see a linear relationship
 data = data[(data['Year'] >= 1970) & (data['Year'] <= 2022)]
 
-# Add a constant to the data
+# adding a column of ones to data, which allows the OLS function to calculate an intercept.
+# OLS model does not include an intercept by default.
 X = sm.add_constant(data['Year'])
 
-# Fit a linear model to the data
+# Fit a linear model to the data. First argument is dependendent variable and the second is the independent
 model = sm.OLS(data['Anomaly'], X)
 results = model.fit()
 
-year_2023 = 2023
-prediction_2023 = results.params['const'] + results.params['Year'] * year_2023
-
-st, data, ss2 = summary_table(results, alpha=0.05)
-
-# Get the standard error and confidence intervals
-fittedvalues = data[:, 2]
-predict_mean_se  = data[:, 3]
-predict_mean_ci_low, predict_mean_ci_upp = data[:, 4:6].T
-predict_ci_low, predict_ci_upp = data[:, 6:8].T
-
-# Calculate the prediction interval for the year 2023
-i = len(data) - 1
-predict_ci_low_2023 = prediction_2023 - (predict_ci_upp[i] - fittedvalues[i])
-predict_ci_upp_2023 = prediction_2023 + (fittedvalues[i] - predict_ci_low[i])
-
-print("Confindance interval: " + "[" + str(predict_ci_low_2023) + "], [" + str(predict_ci_upp_2023) + "]")
+year_2023 = pd.DataFrame({'const': [1], 'Year': [2023]})
+prediction_2023 = results.get_prediction(year_2023)
+fitted_values = results.fittedvalues
+mean_2023 = prediction_2023.predicted_mean[0]
+se_2023 = prediction_2023.se_mean[0]
+conf_int_2023 = prediction_2023.conf_int(alpha=0.05)  # Calculate the 95% confidence interval
+ymin, ymax = conf_int_2023[0]
+print("confidence interval: " + "[" + str(ymax) + ", " + str(ymin) + "]")
 
 highest_temp_2016 = 1.03
 
-# Calculate the probability that the temperature in 2023 will be higher than that in 2016
-if highest_temp_2016 < predict_ci_low_2023:
-    probability = 1
-elif highest_temp_2016 > predict_ci_upp_2023:
-    probability = 0
-else:
-    probability = (predict_ci_upp_2023 - highest_temp_2016) / (predict_ci_upp_2023 - predict_ci_low_2023)
+# change to see what the probabillity of 2013 temp anomaly will be larger that what you set it to
+prob_threshold = 1.03
+prob_less_than = norm.cdf(prob_threshold, loc=mean_2023, scale=se_2023)
+prob_greater_than = 1 - prob_less_than
+print("Probabillity that 2023 temp anomaly will be larger than " + str(prob_threshold) + ": " + str(prob_greater_than))
 
-print("Probability temperature anomaly in 2023 highest ever: " + str(probability))
+plt.figure(figsize=(10, 6))
+
+for year, anomaly in zip(data['Year'], data['Anomaly']):
+    if year == 2016 or year == 1998:
+        plot_scatter(year, anomaly, 'green', 'El Nino Years')
+    else:
+        plot_scatter(year, anomaly, 'blue', 'Full Year Data')
+
+plt.xlabel('Year')
+plt.ylabel('Full Year Anomaly')
+plt.title('Full Year Temperature Anomaly')
+plt.grid(True)
+
+plt.plot(2023, mean_2023, marker='o', color='red', label='Predicted Value 95%CI')
+
+conf_int_line = plt.vlines(x=2023, ymin=ymin, ymax=ymax, color='red', linestyle='--')
+
+plt.plot(data['Year'], fitted_values, color='orange', linestyle='-', label='Fitted line')
+
+handles, labels = plt.gca().get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+plt.legend(by_label.values(), by_label.keys(), loc='upper left')
+
+plt.show()
