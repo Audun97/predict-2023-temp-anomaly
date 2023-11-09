@@ -32,7 +32,8 @@ mean_2023 = prediction_2023.predicted_mean[0]
 se_2023 = prediction_2023.se_mean[0]
 conf_int_2023 = prediction_2023.conf_int(alpha=0.05)  # Calculate the 95% confidence interval
 ymin, ymax = conf_int_2023[0]
-print("confidence interval: " + "[" + str(ymax) + ", " + str(ymin) + "]")
+print("Prediction for 2023: " + str(mean_2023))
+print("Confidence interval: " + "[" + str(ymax) + ", " + str(ymin) + "]")
 
 highest_temp_2016 = 1.03
 
