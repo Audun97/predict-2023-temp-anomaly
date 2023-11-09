@@ -3,7 +3,7 @@ import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import summary_table
 import matplotlib.pyplot as plt
 
-file_path = 'C:\\Users\\Audun\\Downloads\\data (1).csv'
+file_path = 'data/full-year-temp-anomalies.csv'
 data = pd.read_csv(file_path, skiprows=5, names=['Year', 'Anomaly'])
 data = data[(data['Year'] >= 1970) & (data['Year'] <= 2022)]
 
@@ -42,6 +42,10 @@ plt.plot(data['Year'], fittedvalues, color='red', label='Fitted line')
 # Plot the predicted 2023 value with the 95% confidence interval
 plt.plot(year_2023, prediction_2023, 'go')
 plt.fill_between([year_2023], predict_ci_low_2023, predict_ci_upp_2023, color='g', alpha=0.1)
+
+# Add horizontal lines at the top and bottom of the confidence interval
+plt.hlines(predict_ci_low_2023, xmin=year_2023-1, xmax=year_2023+1, colors='g', linestyles='solid')
+plt.hlines(predict_ci_upp_2023, xmin=year_2023-1, xmax=year_2023+1, colors='g', linestyles='solid')
 
 # Set the title and labels
 plt.title('Anomaly vs Year with Linear Regression and Prediction for 2023')

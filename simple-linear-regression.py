@@ -2,9 +2,14 @@ import pandas as pd
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import summary_table
 
-file_path = 'C:\\Users\\Audun\\Downloads\\data (1).csv'
+# This script calculates the probabillity that 2023 will be the hottest year ever 
+# based on full year temperature anomalies and a simple linear regression
+
+file_path = 'data/full-year-temp-anomalies.csv'
 
 data = pd.read_csv(file_path, skiprows=4)
+
+# cut off data from the 70's because that is when we see a linear relationship
 data = data[(data['Year'] >= 1970) & (data['Year'] <= 2022)]
 
 # Add a constant to the data
